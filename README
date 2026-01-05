@@ -1,0 +1,35 @@
+#################################################################
+Planet Ring DC Server
+Author Shuouma
+2017
+#################################################################
+Description
+#################################################################
+This is the source code release of the Planet Ring server.
+It is a remake of the old server, but as always,
+this is not a production release. So take it as it is.
+
+Thanks to:
+IberDC the development team in WWW.DREAMCAST.ES
+- For doing the first server and all the research
+
+#################################################################
+Prerequisite & Limitations
+#################################################################
+1. Libraries for sqlite3 (libsqlite3) and pthread are required for compilation
+2. It is mandatory to edit the planetring.cfg and replace <SERVER_IP> to the public IP of your server.
+3. The code is only tested on a Little-endian (byte-order) and X86_64 architecture. Will probably not
+   work on big-endian without smaller modifications of the code.
+4. The release is for Linux
+
+#################################################################
+Compile & Run
+#################################################################
+1. make (to compile the source code)
+2. Execute the binaries planetring_server
+Note:
+Create your own init.d scripts for easier launch. Pipe the log to file.
+
+
+Happy Gaming
+Shuouma

@@ -29,6 +29,7 @@
 #include <stdarg.h>
 #include "planetring_common.h"
 #include "planetring_msg.h"
+#include <dcserver/discord.h>
 
 /*
  * Function: keepalive_check
@@ -370,12 +371,12 @@ void planetring_error(const char* format, ... ) {
   fprintf(stderr,"%s",td_str);
   s_str = "[PLANETRING - Server] [ERROR] - ";
   
-  fprintf(stdout,"%s",s_str);
+  fprintf(stderr,"%s",s_str);
   va_start(args,format);
-  vfprintf(stdout,format,args);
+  vfprintf(stderr,format,args);
   va_end(args);
-  fprintf(stdout,"\n");
-  fflush(stdout);
+  fprintf(stderr,"\n");
+  fflush(stderr);
 }
 
 void planetring_info(const char* format, ... ) {
@@ -387,16 +388,16 @@ void planetring_info(const char* format, ... ) {
 
   memset(td_str, 0, sizeof(td_str));
   snprintf(td_str, sizeof(td_str), "[%04d/%02d/%02d %02d:%02d:%02d]", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-  fprintf(stdout,"%s",td_str);
+  fprintf(stderr,"%s",td_str);
 
   s_str = "[PLANETRING - Server] [INFO] - "; 
 
-  fprintf(stdout,"%s",s_str);
+  fprintf(stderr,"%s",s_str);
   va_start(args,format);
-  vfprintf(stdout,format,args);
+  vfprintf(stderr,format,args);
   va_end(args);
-  fprintf(stdout,"\n");
-  fflush(stdout);
+  fprintf(stderr,"\n");
+  fflush(stderr);
 }
 
 /*
@@ -417,11 +418,12 @@ int get_planetring_config(server_data_t *s, char *fn) {
   FILE *file = fopen(fn,"r");
   int pr_max_cli=0, i=0;
   int pr_port=0;
-  char pr_ip[16], buf[1024], pr_db_path[256], pr_teml_path[256];
+  char pr_ip[16], buf[1024], pr_db_path[256], pr_teml_path[256], pr_discord_webhook[256];
   memset(buf, 0, sizeof(buf));
   memset(pr_ip, 0, sizeof(pr_ip));
   memset(pr_db_path, 0, sizeof(pr_db_path));
   memset(pr_teml_path, 0, sizeof(pr_teml_path));
+  memset(pr_discord_webhook, 0, sizeof(pr_discord_webhook));
   
   if (file != NULL) {
     while (fgets(buf, sizeof(buf), file) != NULL) {
@@ -430,6 +432,7 @@ int get_planetring_config(server_data_t *s, char *fn) {
       sscanf(buf, "PLANETRING_IP=%15s", pr_ip);
       sscanf(buf, "PLANETRING_DB_PATH=%s", pr_db_path);
       sscanf(buf, "PLANETRING_TEML_PATH=%s", pr_teml_path);
+      sscanf(buf, "DISCORD_WEBHOOK=%s", pr_discord_webhook);
     }
     fclose(file);
   } else {
@@ -464,6 +467,7 @@ int get_planetring_config(server_data_t *s, char *fn) {
   strncpy(s->pr_db_path, pr_db_path, sizeof(pr_db_path));
   strncpy(s->pr_teml_path, pr_teml_path, sizeof(pr_teml_path));
   s->pr_port = (uint16_t)pr_port;
+  discordSetWebhook(pr_discord_webhook);
     
   planetring_info("Loaded Config:");
   planetring_info("\tPLANETRING_IP: %s", s->pr_ip);
@@ -471,6 +475,7 @@ int get_planetring_config(server_data_t *s, char *fn) {
   planetring_info("\tPLANETRING_DB_PATH: %s", s->pr_db_path);
   planetring_info("\tPLANETRING_TEML_PATH: %s", s->pr_teml_path);
   planetring_info("\tPLANETRING_MAX_CLIENTS: %d", s->m_cli);
+  planetring_info("\tDISCORD: %s", pr_discord_webhook);
   //Allocate pointer arrays
   s->p_l = calloc((size_t)s->m_cli, sizeof(player_t *));
   for(i=0;i<(s->m_cli);i++)

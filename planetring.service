@@ -8,8 +8,8 @@ Type=simple
 Restart=always
 RestartSec=1
 User=dcnet
-WorkingDirectory=/usr/local/planetring
-ExecStart=/usr/local/planetring/planetring_server
+ExecStart=/usr/local/sbin/planetring_server
+StandardOutput=append:/var/log/planetring.log
 
 [Install]
 WantedBy=multi-user.target

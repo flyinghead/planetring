@@ -191,12 +191,10 @@ void *planetring_teml_client_handler(void *data) {
     }
     memset(s_msg, 0, sizeof(s_msg));
     memset(c_msg, 0, sizeof(c_msg));
-    fflush(stdout);
   }
   
   planetring_info("[TEML] - Closing socket %d [%s]", sock, inet_ntoa(pl->addr.sin_addr));
   close(sock);
-  fflush(stdout);
   
   free(pl);
   return 0;

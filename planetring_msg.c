@@ -20,6 +20,7 @@
  * Planet Ring MSG functions for Dreamcast
  */
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <arpa/inet.h>
 #include <stdio.h>
@@ -27,6 +28,7 @@
 #include <time.h>
 #include "planetring_common.h"
 #include "planetring_sql.h"
+#include <dcserver/discord.h>
 
 /*
  * Function: snd_table_ts
@@ -319,6 +321,99 @@ void leave_table_in_attraction(player_t *pl, uint8_t table_id) {
   return;
 }
 
+static const char *get_player_list(server_data_t *s)
+{
+	static char buffer[256];
+	char *p = buffer;
+	int max_clients = s->m_cli;
+	for (int i = 0; i < max_clients; i++)
+	{
+		if (s->p_l[i] != NULL && s->p_l[i]->online == 1)
+		{
+			size_t len = strlen(s->p_l[i]->username);
+			if (len == 0)
+				/* shouldn't happen */
+				continue;
+			if ((p - buffer) + (long)len + 2 > sizeof(buffer))
+				break;
+			if (p != buffer)
+				*p++ = '\n';
+			strcpy(p, s->p_l[i]->username);
+			p += len;
+		}
+	}
+	*p = '\0';
+	return buffer;
+}
+
+static void discord_new_user(player_t *pl)
+{
+	char *username = discordEscape(pl->username);
+	char *msg = NULL;
+	int len = asprintf(&msg, "Player **%s** entered the planet", username);
+	if (len < 0)
+		return;
+	const char *embedText = get_player_list((server_data_t *)pl->data);
+	discordNotif("planetring", msg, "Players", embedText);
+	free(username);
+	free(msg);
+}
+
+static const char *get_location(LOCATION location)
+{
+	switch (location)
+	{
+	case DOOR:
+	case INFO:
+	case PLANET:
+	default:
+		return NULL;
+	case SPLASH:
+		return "Splash";
+	case BALLBUBBLE:
+		return "Ball Bubble";
+	case SOAR:
+		return "SOAR";
+	case DOROBO:
+		return "Dream Dorobo";
+	}
+}
+
+static void discord_join_table(player_t *pl, uint8_t table_id)
+{
+	const char *game = get_location(pl->location);
+	if (game == NULL)
+		return;
+	char *username = discordEscape(pl->username);
+	char *msg;
+	int len = asprintf(&msg, "Player **%s** joined %s table %d", username, game, table_id + 1);
+	if (len < 0) {
+		free(username);
+		return;
+	}
+
+	const char *embedText = get_player_list((server_data_t *)pl->data);
+	discordNotif("planetring", msg, "Players", embedText);
+	free(username);
+	free(msg);
+}
+
+static void discord_game_started(player_t *pl, uint8_t table_id)
+{
+	const char *game = get_location(pl->location);
+	if (game == NULL)
+		return;
+	char *msg;
+	int len = asprintf(&msg, "Game %s table %d started", game, table_id + 1);
+	if (len < 0)
+		return;
+
+	// TODO only player at the same table
+	const char *embedText = get_player_list((server_data_t *)pl->data);
+	discordNotif("planetring", msg, "Players", embedText);
+	free(msg);
+}
+
 /*
  * Function: join_table_in_attraction
  * --------------------
@@ -369,6 +464,7 @@ int join_table_in_attraction(player_t *pl, uint8_t table_id) {
       snd_player_ts(s, pl, table_id, i, 1);
       //Send TS of peers to player through UDP
       snd_table_ts(s, pl, table_id);
+      discord_join_table(pl, table_id);
       return 1;
     }
   }
@@ -986,7 +1082,8 @@ uint16_t pr_check_user(server_data_t *s, player_t *cli, char *msg, int nr_parsed
   inet_pton(AF_INET, s->pr_ip, &(sa.sin_addr)); 
   pkt_size = sprintf(msg, "OK:%d:%d:", ntohl(sa.sin_addr.s_addr), s->pr_port);
   msg[++pkt_size] = '\0';
-  
+  discord_new_user(pl);
+
   return (uint16_t)pkt_size;
 }
 
@@ -1073,7 +1170,7 @@ uint16_t pr_entry_request(server_data_t *s, player_t * cli, char *msg, int nr_pa
   pl->location = (uint8_t)str2int(tok_array[1]);
 
   memset(cli->username, 0, MAX_UNAME_LEN);
-  sprintf(cli->username, tok_array[0]);
+  strcpy(cli->username, tok_array[0]);
 
   //Here you need to set maxtables and visitors to prevent coliding tables
   pkt_size = sprintf(msg, "OK:%d:0",s->m_tables);
@@ -1315,7 +1412,8 @@ uint16_t pr_game_query(server_data_t *s, char *msg, int nr_parsed, char **tok_ar
     memset(a[table_id]->rank_pool[i]->username, 0, MAX_UNAME_LEN);
     a[table_id]->rank_pool[i]->in_use = 0;
   }
-    
+  discord_game_started(pl, table_id);
+
   return 0;
 }
 

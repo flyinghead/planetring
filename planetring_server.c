@@ -353,7 +353,6 @@ void *planetring_client_handler(void *data) {
     }
     memset(s_msg, 0, sizeof(s_msg));
     memset(c_msg, 0, sizeof(c_msg));
-    fflush(stdout);
   }
   
   if(read_size == 0) {
@@ -373,7 +372,6 @@ void *planetring_client_handler(void *data) {
     }
   }
   close(sock);
-  fflush(stdout);
   
   free(pl);
   return 0;

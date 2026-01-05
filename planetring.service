@@ -8,7 +8,7 @@ Type=simple
 Restart=always
 RestartSec=1
 User=dcnet
-ExecStart=/usr/local/sbin/planetring_server
+ExecStart=/usr/local/sbin/planetring_server /usr/local/etc/planetring.cfg
 StandardOutput=append:/var/log/planetring.log
 
 [Install]

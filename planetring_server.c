@@ -567,7 +567,7 @@ int main(int argc , char *argv[]) {
   server_data_t s_data;
 
   //Read cfg file
-  if (!get_planetring_config(&s_data, "planetring.cfg"))
+  if (!get_planetring_config(&s_data, argc >= 2 ? argv[1] : "planetring.cfg"))
     return 0;
 
   //OK - Connect to DB

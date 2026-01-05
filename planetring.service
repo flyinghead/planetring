@@ -1,0 +1,15 @@
+[Unit]
+Description=Planet Ring server
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=dcnet
+WorkingDirectory=/usr/local/planetring
+ExecStart=/usr/local/planetring/planetring_server
+
+[Install]
+WantedBy=multi-user.target

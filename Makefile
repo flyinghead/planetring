@@ -3,18 +3,28 @@ exec_prefix = $(prefix)
 sbindir = $(exec_prefix)/sbin
 sysconfdir = $(prefix)/etc
 datarootdir = $(prefix)/share
-CC = gcc
 TARGET = planetring_server
 CFLAGS = -Wall -Wconversion -O3 -g
-LFLAGS = -lpthread -lsqlite3 -L/usr/local/lib -ldcserver -Wl,-rpath,/usr/local/lib
-SRC = $(wildcard *.c)
-DEP = $(SRC) planetring_common.h planetring_sql.h planetring_msg.h planetring_teml.h
-USER = dcnet
+LDFLAGS = -lpthread -lsqlite3
+OBJS = planetring_common.o planetring_msg.o planetring_server.o planetring_sql.o planetring_teml.o
+HEADERS = planetring_common.h planetring_sql.h planetring_msg.h planetring_teml.h
+USER = planetring
+DCNET = 1
+
+ifeq ($(DCNET),1)
+  LDFLAGS := $(LDFLAGS) -ldcserver -Wl,-rpath,/usr/local/lib
+  CFLAGS := $(CFLAGS) -DDCNET
+  USER := dcnet
+endif
 
 all: $(TARGET)
 
-planetring_server: $(DEP)
-	$(CC) $(CFLAGS) $(SRC) -o $@ $(LFLAGS)
+%.o: %.c $(HEADERS) Makefile
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+planetring_server: $(OBJS)
+	$(CC) $(CFLAGS) $(OBJS) -o $@ $(LDFLAGS)
+
 clean:
 	rm -f *~ *.o planetring_server
 

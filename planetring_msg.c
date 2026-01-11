@@ -28,7 +28,9 @@
 #include <time.h>
 #include "planetring_common.h"
 #include "planetring_sql.h"
+#ifdef DCNET
 #include <dcserver/discord.h>
+#endif
 
 /*
  * Function: snd_table_ts
@@ -346,6 +348,7 @@ static const char *get_player_list(server_data_t *s)
 	return buffer;
 }
 
+#ifdef DCNET
 static void discord_new_user(player_t *pl)
 {
 	char *username = discordEscape(pl->username);
@@ -386,7 +389,7 @@ static void discord_join_table(player_t *pl, uint8_t table_id)
 		return;
 	char *username = discordEscape(pl->username);
 	char *msg;
-	int len = asprintf(&msg, "Player **%s** joined %s table %d", username, game, table_id + 1);
+	int len = asprintf(&msg, "Player **%s** joined **%s** table %d", username, game, table_id + 1);
 	if (len < 0) {
 		free(username);
 		return;
@@ -404,7 +407,7 @@ static void discord_game_started(player_t *pl, uint8_t table_id)
 	if (game == NULL)
 		return;
 	char *msg;
-	int len = asprintf(&msg, "Game %s table %d started", game, table_id + 1);
+	int len = asprintf(&msg, "Game **%s** table %d started", game, table_id + 1);
 	if (len < 0)
 		return;
 
@@ -413,6 +416,7 @@ static void discord_game_started(player_t *pl, uint8_t table_id)
 	discordNotif("planetring", msg, "Players", embedText);
 	free(msg);
 }
+#endif
 
 /*
  * Function: join_table_in_attraction
@@ -464,7 +468,9 @@ int join_table_in_attraction(player_t *pl, uint8_t table_id) {
       snd_player_ts(s, pl, table_id, i, 1);
       //Send TS of peers to player through UDP
       snd_table_ts(s, pl, table_id);
+#ifdef DCNET
       discord_join_table(pl, table_id);
+#endif
       return 1;
     }
   }
@@ -1082,7 +1088,9 @@ uint16_t pr_check_user(server_data_t *s, player_t *cli, char *msg, int nr_parsed
   inet_pton(AF_INET, s->pr_ip, &(sa.sin_addr)); 
   pkt_size = sprintf(msg, "OK:%d:%d:", ntohl(sa.sin_addr.s_addr), s->pr_port);
   msg[++pkt_size] = '\0';
+#ifdef DCNET
   discord_new_user(pl);
+#endif
 
   return (uint16_t)pkt_size;
 }
@@ -1412,7 +1420,9 @@ uint16_t pr_game_query(server_data_t *s, char *msg, int nr_parsed, char **tok_ar
     memset(a[table_id]->rank_pool[i]->username, 0, MAX_UNAME_LEN);
     a[table_id]->rank_pool[i]->in_use = 0;
   }
+#ifdef DCNET
   discord_game_started(pl, table_id);
+#endif
 
   return 0;
 }

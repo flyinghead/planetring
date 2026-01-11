@@ -28,6 +28,9 @@
 #include <pthread.h>
 #include <fcntl.h>
 #include <netinet/tcp.h>
+#ifdef DCNET
+#include <dcserver/status.h>
+#endif
 #include "planetring_common.h"
 #include "planetring_sql.h"
 #include "planetring_msg.h"
@@ -552,6 +555,40 @@ void *planetring_udp_server_handler(void *data) {
   return 0;
 }
 
+static int active_games(attraction_t **attraction, int max_tables)
+{
+	int count = 0;
+	for (int i = 0; i < max_tables; i++)
+		if (attraction[i]->status == IN_GAME)
+			count++;
+	return count;
+}
+
+#ifdef DCNET
+static void *planetring_status_updater(void *data)
+{
+	server_data_t *server = (server_data_t *)data;
+	for (;;)
+	{
+		int playerCount = 0;
+		for (int i = 0; i < server->m_cli; i++)
+			if (server->p_l[i] != NULL && server->p_l[i]->online == 1)
+				playerCount++;
+		int gameCount = 0;
+		gameCount += active_games(server->splash, server->m_tables);
+		gameCount += active_games(server->ball_bubble, server->m_tables);
+		gameCount += active_games(server->soar, server->m_tables);
+		gameCount += active_games(server->dorobo, server->m_tables);
+
+		statusUpdate("planetring", playerCount, gameCount);
+		statusCommit("planetring");
+
+		sleep(statusGetInterval());
+	}
+	return NULL;
+}
+#endif
+
 /*
  * Function: main
  * --------------------
@@ -610,6 +647,13 @@ int main(int argc , char *argv[]) {
   }
   pthread_detach(thread_id_keepalive);
   
+#ifdef DCNET
+  pthread_t thread_id_status_updater;
+  if (pthread_create(&thread_id_status_updater, NULL, planetring_status_updater, (void*)&s_data) < 0)
+    perror("Could not create status updater thread");
+  pthread_detach(thread_id_status_updater);
+#endif
+
   socket_desc = socket(AF_INET , SOCK_STREAM , 0);
   if (socket_desc == -1) {
     sqlite3_close(s_data.db);
